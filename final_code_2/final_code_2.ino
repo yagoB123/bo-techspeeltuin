@@ -10,6 +10,11 @@ SoftwareSerial softSerial(/*rx =*/10, /*tx =*/11);
 #define FPSerial Serial1
 #endif
 
+// Includes for color sensor
+#include <Wire.h>
+#include "Adafruit_TCS34725.h"
+
+
 // Constants and globals
 
 // Button
@@ -40,10 +45,21 @@ const int  dfVolume = 10;
 int  dfSongPlaying = firstSong;
 bool dfIsPlaying = false;
 
+// Color Sensor
+Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_600MS, TCS34725_GAIN_16X);
+
+struct colorCalibration {
+  unsigned int blackValue;
+  unsigned int whiteValue;
+};
+
+colorCalibration redCal, greenCal, blueCal;
+const bool tcsDebug = true;
 
 // State
 bool playing = true;
 int  songSelected = dfSongPlaying;
+bool needColorCheck = false;
 
 // Button code
 
@@ -133,6 +149,91 @@ void handle_dfplayer() {
   }
 }
 
+// Color sensor
+void setup_colorsensor() {
+  if (tcs.begin()) {
+    if ( tcsDebug) Serial.println("Found TCS3472 sensor");
+  } else {
+    if ( tcsDebug ) Serial.println("No TCS34725 found ... check your connections");
+    while (1)
+      ;  // halt!
+  }
+
+  // We calibrated this with white and black.
+  redCal.blackValue = 8198;
+  redCal.whiteValue = 65535;
+  greenCal.blackValue = 11269;
+  greenCal.whiteValue = 65535;
+  blueCal.blackValue = 9329;
+  blueCal.whiteValue = 65535;
+
+}
+
+int sense_color() {
+  unsigned int r, g, b, c;  // raw values of r,g,b,c as read by TCS3472
+  // Variables used to hold RGB values between 0 and 255
+  int redValue;
+  int greenValue;
+  int blueValue;
+  int clearValue;
+
+  tcs.getRawData(&r, &g, &b, &c);
+
+  char buffer[40];
+  sprintf(buffer, "R: %d G: %d B: %d C: %d", r, g, b, c);
+  Serial.println(buffer);
+
+  delay(50);
+
+  redValue = RGBmap(r, redCal.blackValue, redCal.whiteValue, 0, 255);
+  greenValue = RGBmap(g, greenCal.blackValue, greenCal.whiteValue, 0, 255);
+  blueValue = RGBmap(b, blueCal.blackValue, blueCal.whiteValue, 0, 255);
+
+  sprintf(buffer, "R: %d G: %d B: %d", redValue, greenValue, blueValue);
+  if ( tcsDebug) Serial.println(buffer);
+
+  if ( blueValue > 200 ) {
+    // Bal is blauw als blauw > 200"
+    if ( tcsDebug) Serial.println("Blauw");
+    return blueSong;
+  } else if ( redValue < 150 && greenValue > 200 ) {
+    // Groen
+    if ( tcsDebug) Serial.println("Groen");
+    return greenSong;
+  } else if ( redValue > 200 ) {
+    // Geel, Rood of Oranje
+    if ( greenValue < 200 ) {
+      // Rood
+      if ( tcsDebug) Serial.println("rood");
+      return redSong;
+    } else {
+      // Geel of oranje
+      if ( blueValue < 100 ) {
+        if ( tcsDebug) Serial.println("oranje");
+        return orangeSong;
+      } else {
+        if ( tcsDebug) Serial.println("geel");
+        return yellowSong;
+      }
+    }
+  }
+  if ( tcsDebug) Serial.println("Iets anders");
+  return firstSong;
+}
+
+int RGBmap(unsigned int x, unsigned int inlow, unsigned int inhigh, int outlow, int outhigh) {
+  float flx = float(x);
+  float fla = float(outlow);
+  float flb = float(outhigh);
+  float flc = float(inlow);
+  float fld = float(inhigh);
+
+  float res = ((flx - flc) / (fld - flc)) * (flb - fla) + fla;
+
+  return int(res);
+}
+
+
 // Main code
 
 void setup() {
@@ -140,6 +241,7 @@ void setup() {
   setup_button();
   setup_led();
   setup_dfplayer();
+  setup_colorsensor();
 }
 
 
@@ -149,11 +251,16 @@ void loop() {
 
     if ( playing ) {
       Serial.println("play");
+      needColorCheck = true;
     } else {
       Serial.println("pause");
     }
   }
   handle_led();
   handle_dfplayer();
+  if ( needColorCheck ) {
+    sense_color();
+    needColorCheck = false;
+  }
 }
 
