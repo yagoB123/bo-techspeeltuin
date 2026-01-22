@@ -11,7 +11,10 @@ int btnLastHigh = 0;
 bool btnChanged = true;
 
 // Led
-
+const int ledPin = 3;
+const int ledBlinkInterval = 500;
+bool ledOn = false;
+int ledLastChange = 0;
 
 // State
 bool playing = true;
@@ -45,7 +48,27 @@ bool handle_button() {
 // Led functions
 
 void setup_led() {
+  pinMode(ledPin, OUTPUT); 
+}
 
+void handle_led() {
+  if ( playing ) {
+    // Als we spelen, led constant aan
+    digitalWrite(ledPin, HIGH);
+    ledOn = true;
+    ledLastChange = millis();
+  } else {
+    // Als we pauze staan, knipperen
+    if ( millis() - ledLastChange >= ledBlinkInterval ) {
+      ledOn = ! ledOn;
+      if ( ledOn ) {
+        digitalWrite(ledPin, HIGH);
+      } else {
+        digitalWrite(ledPin, LOW);
+      }
+      ledLastChange = millis();
+    }
+  }
 }
 
 // Main code
