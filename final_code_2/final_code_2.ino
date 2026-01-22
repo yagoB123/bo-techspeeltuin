@@ -25,12 +25,21 @@ const int ledBlinkInterval = 500;
 bool ledOn = false;
 int ledLastChange = 0;
 
+// Songs
+const int firstSong = 5;
+const int redSong = 2;
+const int orangeSong = 6;
+const int yellowSong = 3;
+const int greenSong = 4;
+const int blueSong = 1;
+
 // DFPlayer 
 DFRobotDFPlayerMini myDFPlayer;
 const bool dfDebug = true;
 const int  dfVolume = 10;
-int  dfSongPlaying = 1;
+int  dfSongPlaying = firstSong;
 bool dfIsPlaying = false;
+
 
 // State
 bool playing = true;
