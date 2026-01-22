@@ -29,10 +29,12 @@ int ledLastChange = 0;
 DFRobotDFPlayerMini myDFPlayer;
 const bool dfDebug = true;
 const int  dfVolume = 10;
+int  dfSongPlaying = 1;
+bool dfIsPlaying = false;
 
 // State
 bool playing = true;
-int  selectedSong = 1;
+int  songSelected = dfSongPlaying;
 
 // Button code
 
@@ -106,8 +108,20 @@ void setup_dfplayer() {
   if ( dfDebug ) Serial.println("DFPlayer Mini online.");
   myDFPlayer.volume(dfVolume);  //Set volume value. From 0 to 30
   if ( dfDebug ) Serial.println("DFPlayer volume set.");
-  myDFPlayer.play(selectedSong);  //Play the first mp3
+  myDFPlayer.play(dfSongPlaying);  //Play the first mp3
+  dfIsPlaying = true;
   if ( dfDebug ) Serial.println("First song started");
+}
+
+void handle_dfplayer() {
+  if ( dfIsPlaying != playing ) {
+    if ( playing ) {
+      myDFPlayer.start();
+    } else {
+      myDFPlayer.pause();
+    }
+    dfIsPlaying = playing;
+  }
 }
 
 // Main code
@@ -131,5 +145,6 @@ void loop() {
     }
   }
   handle_led();
+  handle_dfplayer();
 }
 
