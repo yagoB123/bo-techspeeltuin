@@ -1,5 +1,14 @@
-// Includes
+// Includes for DFPlayer
+#include "Arduino.h"
+#include "DFRobotDFPlayerMini.h"
 
+#if (defined(ARDUINO_AVR_UNO) || defined(ESP8266))  // Using a soft serial port
+#include <SoftwareSerial.h>
+SoftwareSerial softSerial(/*rx =*/10, /*tx =*/11);
+#define FPSerial softSerial
+#else
+#define FPSerial Serial1
+#endif
 
 // Constants and globals
 
@@ -16,8 +25,14 @@ const int ledBlinkInterval = 500;
 bool ledOn = false;
 int ledLastChange = 0;
 
+// DFPlayer 
+DFRobotDFPlayerMini myDFPlayer;
+const bool dfDebug = true;
+const int  dfVolume = 10;
+
 // State
 bool playing = true;
+int  selectedSong = 1;
 
 // Button code
 
@@ -71,12 +86,37 @@ void handle_led() {
   }
 }
 
+// DFPlayer
+
+void setup_dfplayer() {
+  #if (defined ESP32)
+    FPSerial.begin(9600, SERIAL_8N1, /*rx =*/D3, /*tx =*/D2);
+  #else
+    FPSerial.begin(9600);
+  #endif
+
+  if ( dfDebug ) Serial.println(F("Initializing DFPlayer ... (May take 3~5 seconds)"));
+  while ( ! myDFPlayer.begin(FPSerial, true, true) ) {
+    if ( dfDebug ) {
+      Serial.println("Unable to begin:");
+      Serial.println("1.Please recheck the connection!");
+      Serial.println("2.Please insert the SD card!");    
+    }
+  }
+  if ( dfDebug ) Serial.println("DFPlayer Mini online.");
+  myDFPlayer.volume(dfVolume);  //Set volume value. From 0 to 30
+  if ( dfDebug ) Serial.println("DFPlayer volume set.");
+  myDFPlayer.play(selectedSong);  //Play the first mp3
+  if ( dfDebug ) Serial.println("First song started");
+}
+
 // Main code
 
 void setup() {
   Serial.begin(9600);
   setup_button();
   setup_led();
+  setup_dfplayer();
 }
 
 
