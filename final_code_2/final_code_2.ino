@@ -147,6 +147,10 @@ void handle_dfplayer() {
     }
     dfIsPlaying = playing;
   }
+  if (playing && (songSelected != dfSongPlaying ) ) {
+    myDFPlayer.play(songSelected);  //Play the selected song
+    dfSongPlaying = songSelected;
+  }
 }
 
 // Color sensor
@@ -259,7 +263,7 @@ void loop() {
   handle_led();
   handle_dfplayer();
   if ( needColorCheck ) {
-    sense_color();
+    songSelected = sense_color();
     needColorCheck = false;
   }
 }
